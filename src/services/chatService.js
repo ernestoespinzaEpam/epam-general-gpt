@@ -29,14 +29,14 @@ export async function deleteHistory(token) {
     return await response.json();
 }
 
-export async function sendMessage(messageText, token) {
+export async function sendMessage(messageText, prompt, token) {
     const response = await fetch(`${API_URL}/message`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `${token}`,
         },
-        body: JSON.stringify({ user_input: messageText }),
+        body: JSON.stringify({ user_input: messageText, prompt: prompt }),
     });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();

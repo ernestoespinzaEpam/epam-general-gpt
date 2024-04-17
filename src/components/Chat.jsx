@@ -17,7 +17,6 @@ const Chat = ({ messages, isLoading }) => {
     }, 3000); // Hide after 3 seconds
   };
 
-  // Function to copy code text to clipboard
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text).then(() => {
       showToast('Code copied to clipboard!');
@@ -27,79 +26,55 @@ const Chat = ({ messages, isLoading }) => {
     });
   };
 
-  // Function to render message text, splitting it into code and regular text if needed
   const renderMessageText = (text) => {
-    const codeRegex = /```([^`]+)```/gs;
+    const codeRegex = /```(\w+)\n+([^]+?)```/gs;
+    const boldRegex = /\*\*([^*]+)\*\*/g;
     let lastIndex = 0;
     const result = [];
-
+  
+    text = text.replace(boldRegex, '<strong>$1</strong>'); 
+  
     for (const match of text.matchAll(codeRegex)) {
-      const [matchedBlock, codeContent] = match;
+      const [matchedBlock, lang, codeContent] = match;
       const start = match.index;
-      // Text before the code block with respect to line breaks
       const preText = text.slice(lastIndex, start);
       if (preText) {
-        result.push(<span key={`${lastIndex}-pre`}>{preText.split('\n').map((line, i) => <React.Fragment key={i}>{i > 0 && <br />}{line}</React.Fragment>)}</span>);
+        result.push(<span key={`${lastIndex}-pre`} dangerouslySetInnerHTML={{ __html: preText.split('\n').join('<br/>') }} />);
       }
-      // Code block with copy button
+  
       result.push(
-        <div key={start} style={{ position: 'relative' }}>
+        <div key={start} className="relative my-2">
           <button
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 0,
-              backgroundColor: '#00000060',
-              color: 'white',
-              border: 'none',
-              borderTopRightRadius: '4px',
-              borderBottomLeftRadius: '4px',
-              cursor: 'pointer'
-            }}
-            onClick={() => copyToClipboard(codeContent.trim())}
-          >
+            className="absolute right-0 top-0 bg-black bg-opacity-60 text-white border-none rounded-tl-none rounded-br-lg cursor-pointer p-1"
+            onClick={() => copyToClipboard(codeContent.trim())}>
             Copy
           </button>
-          <SyntaxHighlighter language="javascript" style={okaidia}>
+          <SyntaxHighlighter language={lang} style={okaidia}>
             {codeContent.trim()}
           </SyntaxHighlighter>
         </div>
       );
       lastIndex = start + matchedBlock.length;
     }
-    // Text after the last code block, accounting for line breaks
+  
     const postText = text.slice(lastIndex);
     if (postText) {
-      result.push(
-        <span key={lastIndex}>{postText.split('\n').map((line, i) => <React.Fragment key={i}>{i > 0 && <br />}{line}</React.Fragment>)}</span>
-      );
+      result.push(<span key={lastIndex} dangerouslySetInnerHTML={{ __html: postText.split('\n').join('<br/>') }} />);
     }
-
+  
     return result;
   };
 
   return (
     <div className="overflow-y-auto flex-1 p-4 space-y-2">
       {toast.show && (
-        <div style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          backgroundColor: '#333',
-          color: '#fff',
-          padding: '16px',
-          borderRadius: '8px',
-          zIndex: 1000, // Ensure it's above other elements
-        }}>
+        <div className="fixed bottom-5 right-5 bg-gray-800 text-white p-4 rounded-lg z-50">
           {toast.message}
         </div>
       )}
       {messages.map((msg, index) => (
-        <div
-          key={index}
-          className={`w-full flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
-          <div
-            className={`inline-block p-2 rounded-lg text-gray-300 ${msg.isUser ? 'bg-blue-700' : 'bg-gray-700'} break-words max-w-fit`}>
+        <div key={index} className={`w-full flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
+          <div className={`inline-block p-2 rounded-lg text-gray-300 ${msg.isUser ? 'bg-blue-700' : 'bg-gray-700'} break-words max-w-3xl`}>
             {msg.text && renderMessageText(msg.text)}
           </div>
         </div>
