@@ -1,27 +1,36 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './App.css';
 import { getHistory, deleteHistory, sendMessage } from './services/chatService';
 import Chat from './components/Chat';
 import ChatInput from './components/ChatInput';
 import logo from './assets/EpamGPT.png';
-import { Link } from 'react-router-dom';
+import { Link } from 'react-router-dom'; 
 
 function App() {
   const [token, setToken] = useState('');
-  const welcomeMessage = { text: "🚀 Welcome to your AI IaC Assistant!\n Here to support your Infrastructure as Code efforts. Need help with code, deployment strategies, or optimizing infrastructure? I’m ready to assist.\n What can I help you with today?", isUser: false };  
+  const welcomeMessage = {
+    text: "🚀 Welcome to your AI IaC Assistant!\nHere to support your Infrastructure as Code efforts. Need help with code, deployment strategies, or optimizing infrastructure? I’m ready to assist.\n What can I help you with today?",
+    isUser: false
+  };  
   const [isLoading, setIsLoading] = useState(false);
   const [messages, setMessages] = useState([welcomeMessage]);
+  const prompt = "You are a DevOps expert. Your expertise focuses on IaC, CI/CD, Configuration Management, Logging and monitoring, Cloud and also be a very helpful assistant";
   
   useEffect(() => {
+    initializeSession();
+  }, []);
+
+  const initializeSession = () => {
     const sessionToken = sessionStorage.getItem('sessionToken') || 'Session_'+Math.random().toString(36).substr(2, 9);
     sessionStorage.setItem('sessionToken', sessionToken);
     setToken(sessionToken);
-    // getHistory(token)
-    //   .then(previousMessages => {
-    //     setMessages(prevMessages => [...prevMessages, ...previousMessages]);
-    //   })
-    //   .catch(error => console.error(error));
-  }, []);
+
+    getHistory(sessionToken)
+      .then(previousMessages => {
+        setMessages(prevMessages => [...prevMessages, ...previousMessages]);
+      })
+      .catch(error => console.error(error));
+  };
 
   const handleSendMessage = async (messageText) => {
     setMessages((currentMessages) => [
@@ -31,7 +40,7 @@ function App() {
     setIsLoading(true);
 
     try {
-      const { response } = await sendMessage(messageText, token);
+      const { response } = await sendMessage(messageText, prompt, token);
       setMessages((currentMessages) => [
         ...currentMessages,
         { text: response, isUser: false },
@@ -44,18 +53,16 @@ function App() {
     }
   };
 
-  const handleClearMessages = () => {
-    deleteHistory(token)
-    .then(() => {
-        setMessages([]);
-        setMessages(messages => [...messages, welcomeMessage]);
-      })
-    .catch(error => console.error(error));
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+  const handleClearMessages = async () => {
+    try {
+      await deleteHistory(token);
+      sessionStorage.removeItem('sessionToken');
+      initializeSession(); 
+      
+      setMessages([welcomeMessage]);
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
